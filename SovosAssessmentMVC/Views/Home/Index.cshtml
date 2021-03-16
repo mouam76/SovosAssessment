@@ -1,0 +1,164 @@
+﻿@model SovosAssessmentMVC.Models.CaseViewModel
+
+@{
+    ViewBag.Title = "Home Page";
+}
+<div>
+    @using (Html.BeginForm("Index", "Home", FormMethod.Post, Model))
+    {
+        <div>
+            <h4>Search Criteria</h4>
+            <hr />
+            <div class="form-group">
+                @Html.LabelFor(model => model.Type, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EnumDropDownListFor(model => model.TypeEnum, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(model => model.TypeEnum)
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(model => model.Status, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EnumDropDownListFor(model => model.StatusEnum, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(model => model.StatusEnum)
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(model => model.UserName, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.UserName, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(model => model.UserName)
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(model => model.Title, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Title, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(model => model.Title)
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(model => model.DateStart, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.DateStart, new { htmlAttributes = new { @class = "form-control datepicker" } })
+                    @Html.ValidationMessageFor(model => model.DateStart)
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(model => model.DateEnd, new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.DateEnd, new { htmlAttributes = new { @class = "form-control datepicker" } })
+                    @Html.ValidationMessageFor(model => model.DateEnd)
+                </div>
+            </div>
+        </div>
+        <div>
+            <input type="button" value="search" id="search-case-button" />
+        </div>
+    }
+
+    <br />
+
+    <div id="DataTableForm">
+        <h6>SEARCH TABLE</h6>
+        <div class="col-xs-12 no-gutters">
+            <table id="search_table" class="display cell-border">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Title</th>
+                        <th>Date Created</th>
+                    </tr>
+                    <tr class="dropdown-search-row">
+                        <th class="dropdownSearch"></th>
+                        <th class="dropdownSearch"></th>
+                        <th class="dropdownSearch"></th>
+                        <th class="dropdownSearch"></th>
+                        <th class="dropdownSearch"></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+@section scripts{
+    <script>
+        $(document).on("click", "#search-case-button", function (event) {
+            var searchViewModel = {
+                TypeEnum: $('#TypeEnum').val(),
+                StatusEnum: $('#StatusEnum').val(),
+                UserName: $('#UserName').val(),
+                Title: $('#Title').val(),
+                DateStart: $('#DateStart').val(),
+                DateEnd: $('#DateEnd').val(),
+            }
+
+            $('#search_table').DataTable(
+                {
+                    bAutoWidth: false,
+                    pageLength: 25,
+                    "lengthMenu": [[10, 25, 50, -1], [25, 50, 100, 200]],
+                    destroy: true,
+                    serverSide: false,
+                    ordering: false,
+                    paging: true,
+                    responsive: true,
+                    async: false,
+                    columns: [
+                        { "data": "UserName" },
+                        { "data": "TypeEnum" },
+                        { "data": "StatusEnum" },
+                        { "data": "Title" },
+                        { "data": "DateCreated", "render": function (d) { return moment(d).format("MM/DD/YYYY - hh:mm A") } }
+                    ],
+                    initComplete: function () {
+                        this.api().columns('.dropdownSearch').every(function () {
+                            var column = this;
+                            var select = $('<select><option value=""></option></select>')
+                                .appendTo($(column.header()).empty())
+                                .on('change', function () {
+                                    var val = $.fn.dataTable.util.escapeRegex(
+                                        $(this).val()
+                                    );
+
+                                    if (isNaN(Date.parse(val))) {
+                                        column
+                                            .search(val ? '^' + val : '', true, false)
+                                            .draw();
+                                    } else {
+                                        column
+                                            .search(val ? '^' + val + '$' : '', true, false)
+                                            .draw();
+                                    }
+
+                                });
+                            column.data().unique().sort().each(function (d, j) {
+                                if (d != null) {
+                                    if (d.toString().includes("Date")) {
+                                        var date = moment(d).format("MM/DD/YYYY");
+                                        if (select.has('option:contains(' + date + ')').length == 0) {
+                                            select.append('<option value="' + date + '">' + date + '</option>');
+                                        }
+                                    } else {
+                                        select.append('<option value="' + d + '">' + d + '</option>');
+                                    }
+                                }
+                            });
+                        });
+                    },
+                    ajax: {
+                        url: 'Home/GenerateDatatableData',
+                        type: 'POST',
+                        data: searchViewModel,
+                        error: function (req, err) { console.log('Error Loading Table') }
+                    }
+                }
+            ).ajax.reload();
+        });
+    </script>
+}
