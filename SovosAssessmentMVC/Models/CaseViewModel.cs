@@ -8,9 +8,9 @@ namespace SovosAssessmentMVC.Models
     public class CaseViewModel
     {
         public Guid Id { get; set; }
-        public int? Type { get; set; }
+        [DisplayName("Type")]
         public TypeEnum? TypeEnum { get; set; }
-        public int? Status { get; set; }
+        [DisplayName("Status")]
         public StatusEnum? StatusEnum { get; set; }
         [DisplayName("User Name")]
         public string UserName { get; set; }
